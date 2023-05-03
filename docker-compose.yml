@@ -1,46 +1,25 @@
-version: '2.1'
+version: '3'
 services:
-
-
-  postgres:
-    build: ./docker/postgres
-    image: pluralsight/postgres
-    restart: always
-    container_name: postgres
+  webserver:
+    image: apache/airflow:2.2.0
     ports:
-      - "32769:5432"
-    environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-q", "-d", "airflow", "-U", "airflow" ]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-
-
-
-  airflow:
-    build: ./docker/airflow
-    image: pluralsight/airflow
-    restart: always
-    container_name: airflow
-    environment:
-      - AIRFLOW__CORE__FERNET_KEY="Z27wHAQxCObGWbIYyp06PlNoNlV7hyLO5zT74itoQww="
+      - "8080:8080"
     volumes:
-      - ./dags:/usr/local/airflow/dags
-    ports:
-      - 8080:8080
-    depends_on:
-      - postgres
-    healthcheck:
-      test: [ "CMD", "nc", "-z", "airflow", "8080" ]
-      timeout: 45s
-      interval: 10s
-      retries: 10
-
-
-networks:
-  default:
-    name: airflow-network
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  scheduler:
+    image: apache/airflow:2.2.0
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    command: scheduler
